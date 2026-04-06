@@ -19,8 +19,12 @@ COPY frontend/ /var/www/html/
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Expose only port 80 (nginx)
 EXPOSE 80
 
-# Start both services
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 & nginx -g 'daemon off;'"]
+# Start both services with proper order
+CMD ["/start.sh"]
