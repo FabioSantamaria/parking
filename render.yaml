@@ -1,13 +1,11 @@
 services:
   - type: web
-    name: vigo-parking-app
+    name: vigo-parking-ui
     env: docker
     plan: free
     dockerfilePath: ./Dockerfile
     autoDeploy: true
-    healthCheckPath: /api/health
+    healthCheckPath: /health
     envVars:
-      - key: PYTHONUNBUFFERED
-        value: "1"
       - key: REACT_APP_API_URL
-        value: "https://vigo-parking-app.onrender.com"
+        value: "https://vigo-parking-api.onrender.com"
