@@ -1,0 +1,29 @@
+services:
+  backend:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "
+      pip install --no-cache-dir fastapi uvicorn requests pandas pydantic &&
+      python -m uvicorn main:app --host 0.0.0.0 --port 8000
+      "
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "
+      python -m http.server 3000
+      "
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend

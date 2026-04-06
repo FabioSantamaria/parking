@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vigo Parking Monitor</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 0.5rem;
+            z-index: 1;
+        }
+        .custom-marker {
+            background: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            border: 2px solid;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="min-h-screen p-4">
+            <div class="max-w-7xl mx-auto">
+                <!-- Header -->
+                <div class="glass-effect rounded-xl p-6 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">🅿️</div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-white">Vigo Parking Monitor</h1>
+                                <p class="text-white/80">Real-time parking occupation data</p>
+                            </div>
+                        </div>
+                        <button onclick="fetchData()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                            <span id="refresh-icon">🔄</span>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div id="error" class="hidden bg-red-500/20 border border-red-500/50 text-white p-4 rounded-lg mb-6">
+                    <p id="error-message"></p>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading" class="min-h-screen flex items-center justify-center">
+                    <div class="text-white text-center">
+                        <div class="animate-spin mx-auto mb-4 text-4xl">🔄</div>
+                        <p class="text-xl">Loading parking data...</p>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div id="content" class="hidden">
+                    <!-- Summary Cards -->
+                    <div id="summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <!-- Cards will be inserted here -->
+                    </div>
+
+                    <!-- Map -->
+                    <div class="glass-effect rounded-xl p-6 mb-6">
+                        <h2 class="text-xl font-bold text-white mb-4">🗺️ Parking Map</h2>
+                        <div id="map"></div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <h2 class="text-xl font-bold text-white mb-4">📋 Parking Information</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-white">
+                                <thead>
+                                    <tr class="border-b border-white/20">
+                                        <th class="text-left py-2 px-2">Parking</th>
+                                        <th class="text-center py-2 px-2">Free</th>
+                                        <th class="text-center py-2 px-2">Total</th>
+                                        <th class="text-center py-2 px-2">Occ.</th>
+                                        <th class="text-center py-2 px-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="parking-table">
+                                    <!-- Table rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="glass-effect rounded-xl p-4 mt-6 text-center">
+                        <div class="flex items-center justify-center space-x-4 text-white/80 text-sm">
+                            <div class="flex items-center space-x-1">
+                                <span>🕒</span>
+                                <span id="last-updated">Last updated: Never</span>
+                            </div>
+                            <span>•</span>
+                            <span>Data source: Vigo City Council Open Data</span>
+                            <span>•</span>
+                            <span>Auto-refresh every 1 minute</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let parkingData = [];
+        let summary = null;
+        let map = null;
+
+        function getOccupationColor(occupation) {
+            if (occupation < 30) return '#10b981'; // green
+            if (occupation < 70) return '#f59e0b'; // orange
+            return '#ef4444'; // red
+        }
+
+        function getOccupationStatus(occupation) {
+            if (occupation < 30) return 'Low';
+            if (occupation < 70) return 'Medium';
+            return 'High';
+        }
+
+        function createCustomIcon(occupation) {
+            const color = getOccupationColor(occupation);
+            return L.divIcon({
+                html: `<div style="background: white; border: 3px solid ${color}; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: ${color};">🅿️</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15],
+            });
+        }
+
+        function initMap() {
+            // Initialize map centered on Vigo
+            if (!map) {
+                map = L.map('map').setView([42.2406, -8.7207], 13);
+                
+                // Add OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+            }
+            
+            // Clear existing markers
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Add parking markers
+            parkingData.forEach(parking => {
+                const marker = L.marker([parking.lat, parking.lon], {
+                    icon: createCustomIcon(parking.ocupacion)
+                }).addTo(map);
+
+                // Create popup content
+                const popupContent = `
+                    <div style="font-family: Arial; font-size: 14px; min-width: 200px;">
+                        <h4 style="margin: 0 0 10px 0; color: #333;">${parking.nombre}</h4>
+                        <p style="margin: 5px 0;"><strong>Free Spaces:</strong> ${parking.plazaslibres}</p>
+                        <p style="margin: 5px 0;"><strong>Total Spaces:</strong> ${parking.totalplazas}</p>
+                        <p style="margin: 5px 0;"><strong>Occupation:</strong> ${parking.ocupacion}%</p>
+                        <p style="margin: 5px 0;"><strong>Last Update:</strong> ${new Date(parking.fechahora).toLocaleString()}</p>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+            });
+
+            // Force map to redraw after markers are added
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+        }
+
+        function renderSummary() {
+            const summaryDiv = document.getElementById('summary');
+            summaryDiv.innerHTML = `
+                <div class="glass-effect rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Total Parking Lots</p>
+                            <p class="text-2xl font-bold text-white">${summary.total_parking_lots}</p>
+                        </div>
+                        <div class="text-white/60 text-2xl">📍</div>
+                    </div>
+                </div>
+                <div class="glass-effect rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Total Spaces</p>
+                            <p class="text-2xl font-bold text-white">${summary.total_spaces.toLocaleString()}</p>
+                        </div>
+                        <div class="text-white/60 text-2xl">👥</div>
+                    </div>
+                </div>
+                <div class="glass-effect rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Free Spaces</p>
+                            <p class="text-2xl font-bold text-white">${summary.free_spaces.toLocaleString()}</p>
+                        </div>
+                        <div class="text-white/60 text-2xl">📊</div>
+                    </div>
+                </div>
+                <div class="glass-effect rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-white/80 text-sm">Average Occupation</p>
+                            <p class="text-2xl font-bold text-white">${summary.avg_occupation.toFixed(1)}%</p>
+                        </div>
+                        <div class="text-white/60 text-2xl">📈</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById('parking-table');
+            tableBody.innerHTML = parkingData
+                .sort((a, b) => b.ocupacion - a.ocupacion)
+                .map(parking => `
+                    <tr class="border-b border-white/10 hover:bg-white/10">
+                        <td class="py-2 px-2 text-sm">${parking.nombre}</td>
+                        <td class="text-center py-2 px-2 text-sm">${parking.plazaslibres}</td>
+                        <td class="text-center py-2 px-2 text-sm">${parking.totalplazas}</td>
+                        <td class="text-center py-2 px-2 text-sm">${parking.ocupacion}%</td>
+                        <td class="text-center py-2 px-2">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium" style="
+                                background-color: ${getOccupationColor(parking.ocupacion)}20;
+                                color: ${getOccupationColor(parking.ocupacion)};
+                                border: 1px solid ${getOccupationColor(parking.ocupacion)}
+                            ">
+                                ${getOccupationStatus(parking.ocupacion)}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+        }
+
+        function updateLastUpdated() {
+            document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+        }
+
+        function showError(message) {
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('content').classList.add('hidden');
+        }
+
+        function showContent() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+        }
+
+        async function fetchData() {
+            try {
+                document.getElementById('refresh-icon').classList.add('animate-spin');
+                
+                const [parkingResponse, summaryResponse] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/api/parking`),
+                    axios.get(`${API_BASE_URL}/api/parking/summary`)
+                ]);
+                
+                parkingData = parkingResponse.data;
+                summary = summaryResponse.data;
+                
+                renderSummary();
+                renderTable();
+                updateLastUpdated();
+                
+                // Always update the map (for auto-refresh)
+                initMap();
+                
+                showContent();
+                
+            } catch (err) {
+                showError('Unable to fetch parking data. Please make sure the backend is running on http://localhost:8000');
+                console.error('Error fetching data:', err);
+            } finally {
+                document.getElementById('refresh-icon').classList.remove('animate-spin');
+            }
+        }
+
+        // Auto-refresh every 1 minute
+        setInterval(fetchData, 60000);
+        
+        // Initial load
+        fetchData();
+    </script>
+</body>
+</html>
