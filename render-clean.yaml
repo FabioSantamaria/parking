@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: vigo-parking-app
+    env: static
+    plan: free
+    buildCommand: "echo 'No build needed'"
+    publishDir: "."
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://vigo-parking-api.onrender.com/api/*
+    envVars:
+      - key: REACT_APP_API_URL
+        value: "https://vigo-parking-app.onrender.com"
