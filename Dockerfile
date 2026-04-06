@@ -19,7 +19,7 @@ COPY frontend/ /var/www/html/
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
+# Expose only port 80 (nginx)
 EXPOSE 80
 
 # Start both services

@@ -5,7 +5,7 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     autoDeploy: true
-    healthCheckPath: /api/health
+    healthCheckPath: /health
     envVars:
       - key: REACT_APP_API_URL
-        value: "https://vigo-parking-api.onrender.com"
+        value: "https://vigo-parking-app.onrender.com"
