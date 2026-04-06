@@ -1,0 +1,7 @@
+services:
+  parking-app:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=https://vigo-parking-app.onrender.com

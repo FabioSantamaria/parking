@@ -49,41 +49,60 @@ Data is fetched from the Vigo City Council Open Data portal:
 
 - Built with Streamlit for the web interface
 - Uses Folium for map visualization
-- Implements caching to reduce API calls
-- Responsive design that works on desktop and mobile
 
 ## Deployment on Render
 
-### **Quick Setup**
+### **Option 1: Unified Docker Deployment (Recommended)**
+
+**Single Service Deployment** - Frontend + Backend in one container:
+
 1. **Push to GitHub**:
    ```bash
    git push origin main
    ```
 
-2. **Backend (FastAPI)**:
+2. **Render Setup**:
+   - **Web Service** → Connect GitHub repo
+   - **Name**: `vigo-parking-app`
+   - **Environment**: Docker
+   - **Root Directory**: `/` (root)
+   - **Dockerfile Path**: `./Dockerfile`
+   - **Health Check**: `/api/health`
+
+### **Option 2: Separate Services**
+
+**Backend + Frontend as separate services**:
+
+1. **Backend (FastAPI)**:
    - Web Service → Connect GitHub repo
    - Root Directory: `backend`
    - Runtime: Python 3
    - Build: `pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
-3. **Frontend (React)**:
+2. **Frontend (React)**:
    - Static Site → Connect GitHub repo  
    - Root Directory: `frontend`
    - Build: `npm install && npm run build`
-   - Publish: `build`
    - Environment: `REACT_APP_API_URL=https://your-backend-url.onrender.com`
 
-### **Render Configuration Files**
-- `backend/render.yaml` - Backend deployment config
-- `frontend/render.yaml` - Frontend deployment config
+### **Docker Architecture**
+
+**Unified Dockerfile Features**:
+- Multi-stage build (Node.js + Python)
+- Nginx reverse proxy
+- Frontend static files served
+- Backend API proxied to `/api/`
+- Single deployment endpoint
+
+### **Local Testing**
+```bash
+# Unified deployment
+docker-compose -f docker-compose.prod.yml up --build
+
+# Separate services
+docker-compose up --build
+```
 
 ### **Environment Variables**
-- Frontend needs `REACT_APP_API_URL` pointing to backend URL
-- Backend auto-configures port via `$PORT`
-
-### **Free Tier Benefits**
-- Both services fit on free tier
-- Auto-deployment on git push
-- Custom domains available
-- SSL certificates included
+- `REACT_APP_API_URL` - Frontend backend URL
+- `PYTHONUNBUFFERED` - Backend logging
