@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: vigo-parking-ui
+    env: static
+    plan: free
+    buildCommand: "npm install && npm run build"
+    publishDir: build
+    autoDeploy: true
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://vigo-parking-api.onrender.com

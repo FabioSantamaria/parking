@@ -51,3 +51,39 @@ Data is fetched from the Vigo City Council Open Data portal:
 - Uses Folium for map visualization
 - Implements caching to reduce API calls
 - Responsive design that works on desktop and mobile
+
+## Deployment on Render
+
+### **Quick Setup**
+1. **Push to GitHub**:
+   ```bash
+   git push origin main
+   ```
+
+2. **Backend (FastAPI)**:
+   - Web Service → Connect GitHub repo
+   - Root Directory: `backend`
+   - Runtime: Python 3
+   - Build: `pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+3. **Frontend (React)**:
+   - Static Site → Connect GitHub repo  
+   - Root Directory: `frontend`
+   - Build: `npm install && npm run build`
+   - Publish: `build`
+   - Environment: `REACT_APP_API_URL=https://your-backend-url.onrender.com`
+
+### **Render Configuration Files**
+- `backend/render.yaml` - Backend deployment config
+- `frontend/render.yaml` - Frontend deployment config
+
+### **Environment Variables**
+- Frontend needs `REACT_APP_API_URL` pointing to backend URL
+- Backend auto-configures port via `$PORT`
+
+### **Free Tier Benefits**
+- Both services fit on free tier
+- Auto-deployment on git push
+- Custom domains available
+- SSL certificates included
