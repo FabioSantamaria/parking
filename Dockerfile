@@ -12,8 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./
 
-# Copy frontend files
-COPY frontend/ ./static/
+# Create nginx directory and copy frontend files
+RUN mkdir -p /var/www/html
+COPY frontend/ /var/www/html/
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
