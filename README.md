@@ -52,57 +52,46 @@ Data is fetched from the Vigo City Council Open Data portal:
 
 ## Deployment on Render
 
-### **Option 1: Unified Docker Deployment (Recommended)**
+### **Simplest Deployment (Recommended)**
 
-**Single Service Deployment** - Frontend + Backend in one container:
+**Step 1: Backend API**
+1. **Web Service** → Connect GitHub repo
+2. **Root Directory**: `backend`
+3. **Environment**: Python
+4. **Build**: `pip install -r requirements.txt`
+5. **Start**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. **Health Check**: `/api/health`
 
-1. **Push to GitHub**:
-   ```bash
-   git push origin main
-   ```
+**Step 2: Frontend**
+1. **Static Site** → Connect GitHub repo
+2. **Root Directory**: `/` (root)
+3. **Build**: `echo 'No build needed'`
+4. **Publish**: `.`
+5. **Environment**: `REACT_APP_API_URL=https://vigo-parking-api.onrender.com`
 
-2. **Render Setup**:
-   - **Web Service** → Connect GitHub repo
-   - **Name**: `vigo-parking-app`
-   - **Environment**: Docker
-   - **Root Directory**: `/` (root)
-   - **Dockerfile Path**: `./Dockerfile`
-   - **Health Check**: `/api/health`
+### **Why This is Simple**
+- ✅ **No Docker** - Just static HTML + Python
+- ✅ **No build step** - HTML file is ready to serve
+- ✅ **No npm dependencies** - Uses CDN libraries
+- ✅ **Fast deployment** - Both services on free tier
+- ✅ **Auto-deployment** - Updates on git push
 
-### **Option 2: Separate Services**
+### **Files Needed**
+- `backend/render-simple.yaml` - Backend config
+- `render-simple.yaml` - Frontend config
+- `frontend/index.html` - Ready-to-serve HTML file
 
-**Backend + Frontend as separate services**:
-
-1. **Backend (FastAPI)**:
-   - Web Service → Connect GitHub repo
-   - Root Directory: `backend`
-   - Runtime: Python 3
-   - Build: `pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port $PORT`
-
-2. **Frontend (React)**:
-   - Static Site → Connect GitHub repo  
-   - Root Directory: `frontend`
-   - Build: `npm install && npm run build`
-   - Environment: `REACT_APP_API_URL=https://your-backend-url.onrender.com`
-
-### **Docker Architecture**
-
-**Unified Dockerfile Features**:
-- Multi-stage build (Node.js + Python)
-- Nginx reverse proxy
-- Frontend static files served
-- Backend API proxied to `/api/`
-- Single deployment endpoint
+### **Access URLs**
+- **Backend**: `https://vigo-parking-api.onrender.com`
+- **Frontend**: `https://vigo-parking-app.onrender.com`
+- **API Docs**: `https://vigo-parking-app.onrender.com/docs`
 
 ### **Local Testing**
 ```bash
-# Unified deployment
-docker-compose -f docker-compose.prod.yml up --build
+# Backend
+cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# Separate services
-docker-compose up --build
+# Frontend (any static server)
+cd frontend && python -m http.server 3000
+# Or open frontend/index.html directly in browser
 ```
-
-### **Environment Variables**
-- `REACT_APP_API_URL` - Frontend backend URL
-- `PYTHONUNBUFFERED` - Backend logging
