@@ -19,8 +19,8 @@ function App() {
       setError(null);
       
       const [parkingResponse, summaryResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/parking`),
-        axios.get(`${API_BASE_URL}/api/parking/summary`)
+        axios.get(`${API_BASE_URL}/parking`),
+        axios.get(`${API_BASE_URL}/parking/summary`)
       ]);
       
       setParkingData(parkingResponse.data);
