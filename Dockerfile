@@ -1,4 +1,4 @@
-# Simple single container with both frontend and backend
+# Simple single container
 FROM python:3.11-slim
 
 # Install system dependencies
@@ -12,19 +12,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./
 
-# Create nginx directory and copy frontend files
-RUN mkdir -p /var/www/html
+# Copy frontend files
 COPY frontend/ /var/www/html/
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy startup script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
-# Expose only port 80 (nginx)
+# Expose only port 80
 EXPOSE 80
 
-# Start both services with proper order
-CMD ["/start.sh"]
+# Start nginx first, then FastAPI
+CMD ["sh", "-c", "nginx -g 'daemon off;' & sleep 2 && uvicorn main:app --host 127.0.0.1 --port 8000"]
