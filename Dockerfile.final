@@ -1,0 +1,29 @@
+# Final single container - no port conflicts
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y nginx
+
+# Install Python dependencies
+WORKDIR /app
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend code
+COPY backend/ ./
+
+# Copy frontend files
+COPY frontend/ /var/www/html/
+
+# Copy nginx config
+COPY nginx-final.conf /etc/nginx/conf.d/default.conf
+
+# Copy startup script
+COPY start-final.sh /start-final.sh
+RUN chmod +x /start-final.sh
+
+# Expose only port 80
+EXPOSE 80
+
+# Start services - nginx only on port 80
+CMD ["/start-final.sh"]
