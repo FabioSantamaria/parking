@@ -3,7 +3,8 @@ import './App.css';
 import axios from 'axios';
 import { Car, RefreshCw, MapPin, Clock, TrendingUp, Users, Activity } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = '';
 
 function App() {
   const [parkingData, setParkingData] = useState([]);
